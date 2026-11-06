@@ -40,3 +40,13 @@ src/
 - The camera tracks movement, not your face. For real face tracking, use MediaPipe Face Landmarker.
 - No voice input yet (speech-to-text).
 - Rooms, furniture and compartments can't be deleted from the UI.
+
+## Jarvis in Unity
+
+The avatar also exists as a Unity project in `unity/JarvisAvatar`: a procedural head with a contour-line shader. The web app loads its WebGL build from `public/unity`. Without a build, it uses the three.js version.
+
+1. Unity Hub → **Add project from disk** → `unity/JarvisAvatar`. Use Unity 6 or 2022.3 LTS, with the **WebGL Build Support** module installed.
+2. In Unity, open the **Jarvis → Build WebGL for the web app** menu. It creates the scene and builds into `public/unity`.
+3. `npm run dev`. The avatar is now rendered by Unity.
+
+The page drives the avatar with `SendMessage("Jarvis", "SetMode", "idle|thinking|speaking")` and `SendMessage("Jarvis", "SetLook", "x,y" | "off")`. The same API works from React Native with Unity as a Library.

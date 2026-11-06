@@ -68,7 +68,7 @@ function headGeometry() {
     z -= .12 * ss(.35, 1, py) * front;
     const ax = Math.abs(x), noseW = .07 + .07 * ss(-.02, -.2, y);
     const face =
-        .30 * Math.exp(-((x / noseW) ** 2)) * ss(.22, -.17, y) * (1 - ss(-.19, -.27, y))
+        .18 * Math.exp(-((x / noseW) ** 2)) * ss(.22, -.17, y) * (1 - ss(-.19, -.27, y))
       + .10 * (g2(x, y, .09, -.18, .05, .045) + g2(x, y, -.09, -.18, .05, .045))
       + .06 * Math.exp(-(((y - .27) / .07) ** 2)) * ss(.5, .2, ax)
       - .09 * g2(ax, y, .27, .12, .12, .09)

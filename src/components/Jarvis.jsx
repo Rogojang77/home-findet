@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createAvatar } from '../lib/avatar.js';
 import { startTracking } from '../lib/tracking.js';
+import { createUnityAvatar } from '../lib/unityAvatar.js';
 
 export function Jarvis({ jarvis }) {
   const { line, mode, voiceOn, toggleVoice, speak, setLine } = jarvis;
@@ -9,7 +10,16 @@ export function Jarvis({ jarvis }) {
   live.current.mode = mode;
   const [stopCam, setStopCam] = useState(null);
 
-  useEffect(() => createAvatar(canvasRef.current, () => live.current), []);
+  // Unity build if present, otherwise the three.js head
+  useEffect(() => {
+    let dispose = null, dead = false;
+    const canvas = canvasRef.current, getState = () => live.current;
+    // deferred so React StrictMode's instant unmount cancels before anything grabs the canvas
+    Promise.resolve()
+      .then(() => dead ? null : createUnityAvatar(canvas, getState).catch(() => createAvatar(canvas, getState)))
+      .then(d => { if (dead) d?.(); else dispose = d; });
+    return () => { dead = true; dispose?.(); };
+  }, []);
   useEffect(() => () => stopCam?.(), [stopCam]);
 
   const onPointerMove = e => {
