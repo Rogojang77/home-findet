@@ -50,3 +50,7 @@ The avatar also exists as a Unity project in `unity/JarvisAvatar`: a procedural 
 3. `npm run dev`. The avatar is now rendered by Unity.
 
 The page drives the avatar with `SendMessage("Jarvis", "SetMode", "idle|thinking|speaking")` and `SendMessage("Jarvis", "SetLook", "x,y" | "off")`. The same API works from React Native with Unity as a Library.
+
+## Credits
+
+The Jarvis head is the head scan of Lee Perry-Smith by Infinite-Realities, licensed CC BY 3.0. See `scripts/head/README.md`.

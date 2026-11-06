@@ -17,7 +17,8 @@ export function Jarvis({ jarvis }) {
     // deferred so React StrictMode's instant unmount cancels before anything grabs the canvas
     Promise.resolve()
       .then(() => dead ? null : createUnityAvatar(canvas, getState).catch(() => createAvatar(canvas, getState)))
-      .then(d => { if (dead) d?.(); else dispose = d; });
+      .then(d => { if (dead) d?.(); else dispose = d; })
+      .catch(err => console.error('Jarvis avatar failed to load', err));
     return () => { dead = true; dispose?.(); };
   }, []);
   useEffect(() => () => stopCam?.(), [stopCam]);

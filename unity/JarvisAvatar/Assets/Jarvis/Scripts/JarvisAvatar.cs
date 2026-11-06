@@ -50,7 +50,7 @@ public class JarvisAvatar : MonoBehaviour
 
         // wide stage: head sits right of the caption; narrow (phone): centred and higher
         bool narrow = cam.aspect < 1.1f;
-        transform.position = narrow ? new Vector3(0, .6f, 0) : new Vector3(.85f, .05f, 0);
+        transform.position = narrow ? new Vector3(0, .6f, 0) : new Vector3(.6f, .05f, 0);
         cam.transform.position = new Vector3(0, 0, narrow ? -7.2f : -5.6f);
 
         // tracking: turn to face the viewer; idle: rest in profile, swaying slightly

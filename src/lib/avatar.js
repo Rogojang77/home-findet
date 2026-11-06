@@ -55,40 +55,26 @@ void main(){
   gl_FragColor = vec4(col, 1.);
 }`;
 
-// Sculpts a sphere into a head: ellipsoid skull, jaw, nose, brow, eye sockets, lips, chin, ears.
-function headGeometry() {
-  const geo = new THREE.SphereGeometry(1, 220, 220), pos = geo.attributes.position, mouth = new Float32Array(pos.count);
-  const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
-  const g2 = (x, y, cx, cy, sx, sy) => Math.exp(-(((x - cx) / sx) ** 2) - (((y - cy) / sy) ** 2));
-  for (let i = 0; i < pos.count; i++) {
-    const px = pos.getX(i), py = pos.getY(i), pz = pos.getZ(i);
-    let x = px * .78, y = py * 1.05, z = pz * .9;
-    const front = ss(.15, .75, pz);
-    if (py < 0) { x *= 1 - .28 * ss(0, -1, py); if (pz < 0) z *= 1 - .4 * ss(-.1, -.9, py); }
-    z -= .12 * ss(.35, 1, py) * front;
-    const ax = Math.abs(x), noseW = .07 + .07 * ss(-.02, -.2, y);
-    const face =
-        .18 * Math.exp(-((x / noseW) ** 2)) * ss(.22, -.17, y) * (1 - ss(-.19, -.27, y))
-      + .10 * (g2(x, y, .09, -.18, .05, .045) + g2(x, y, -.09, -.18, .05, .045))
-      + .06 * Math.exp(-(((y - .27) / .07) ** 2)) * ss(.5, .2, ax)
-      - .09 * g2(ax, y, .27, .12, .12, .09)
-      + .045 * g2(ax, y, .27, .11, .075, .05)
-      + .05 * g2(ax, y, .42, -.1, .18, .2)
-      + .075 * g2(x, y, 0, -.42, .2, .05) - .035 * g2(x, y, 0, -.475, .22, .02)
-      + .065 * g2(x, y, 0, -.535, .17, .045)
-      + .07 * g2(x, y, 0, -.78, .14, .11);
-    z += face * front;
-    x += Math.sign(px) * .1 * g2(z, y, -.05, 0, .09, .17) * ss(.55, .9, Math.abs(px));
-    pos.setXYZ(i, x, y, z);
-    mouth[i] = ss(-.47, -.62, y) * front * Math.exp(-((x / .35) ** 2));
-  }
-  geo.setAttribute('mouth', new THREE.BufferAttribute(mouth, 1));
-  geo.computeVertexNormals();
+// Head scan (see scripts/head): positions, normals, mouth weights and indices in one small binary
+async function loadHead(url = '/models/head.bytes') {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Head model missing: ${url}`);
+  const buf = await res.arrayBuffer(), dv = new DataView(buf);
+  if (new TextDecoder().decode(new Uint8Array(buf, 0, 4)) !== 'JHD1') throw new Error('Not a JHD1 head file');
+  const v = dv.getUint32(4, true), n = dv.getUint32(8, true);
+  let o = 12;
+  const take = (Type, count) => { const a = new Type(buf, o, count); o += count * Type.BYTES_PER_ELEMENT; return a; };
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(take(Float32Array, v * 3), 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(take(Float32Array, v * 3), 3));
+  geo.setAttribute('mouth', new THREE.BufferAttribute(take(Float32Array, v), 1));
+  geo.setIndex(new THREE.BufferAttribute(take(Uint16Array, n), 1));
   return geo;
 }
 
-// state() returns { mode: 'idle'|'thinking'|'speaking', look: { x, y, active } } every frame
-export function createAvatar(canvas, state) {
+// resolves to a dispose function; state() returns { mode: 'idle'|'thinking'|'speaking', look: { x, y, active } } every frame
+export async function createAvatar(canvas, state) {
+  const headGeo = await loadHead();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -98,20 +84,16 @@ export function createAvatar(canvas, state) {
     vertexShader: VERTEX, fragmentShader: FRAGMENT
   });
   const head = new THREE.Group();
-  const headGeo = headGeometry();
   head.add(new THREE.Mesh(headGeo, mat));
-  const neckGeo = new THREE.CylinderGeometry(.36, .48, 2.4, 160, 80, true);
-  neckGeo.setAttribute('mouth', new THREE.BufferAttribute(new Float32Array(neckGeo.attributes.position.count), 1));
-  const neck = new THREE.Mesh(neckGeo, mat); neck.position.set(0, -1.45, -.12); neck.rotation.x = .18; head.add(neck);
   head.rotation.y = 1.0;
   scene.add(head);
 
-  let base = { x:.85, y:.05 };
+  let base = { x:.6, y:.05 };
   const ro = new ResizeObserver(() => {
     const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
     renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
     const narrow = w / h < 1.1;
-    base = narrow ? { x:0, y:.6 } : { x:.85, y:.05 };
+    base = narrow ? { x:0, y:.6 } : { x:.6, y:.05 };
     cam.position.set(0, 0, narrow ? 7.2 : 5.6);
   });
   ro.observe(canvas);
@@ -138,5 +120,5 @@ export function createAvatar(canvas, state) {
   };
   raf = requestAnimationFrame(loop);
 
-  return () => { cancelAnimationFrame(raf); ro.disconnect(); headGeo.dispose(); neckGeo.dispose(); mat.dispose(); renderer.dispose(); };
+  return () => { cancelAnimationFrame(raf); ro.disconnect(); headGeo.dispose(); mat.dispose(); renderer.dispose(); };
 }
